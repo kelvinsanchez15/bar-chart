@@ -1,3 +1,31 @@
-svg {
-  background-color: aquamarine;
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #848ccf;
 }
+
+.container {
+  background-color: #93b5e1;
+}
+
+#title {
+  text-align: center;
+}
+
+#chart {
+  width: 700px;
+  user-select: none;
+}
+
+#tooltip {
+  position: absolute;
+  color: aliceblue;
+}
+
+/* svg {
+  background-color: aquamarine;
+} */

@@ -1,51 +1,93 @@
 const width = 500;
 const height = 300;
-const margin = { top: 30, right: 30, bottom: 30, left: 40 };
+const margin = { top: 30, right: 10, bottom: 30, left: 45 };
 
 const svg = d3
-  .select("body")
+  .select("#chart")
   .append("svg")
   .attr("viewBox", [0, 0, width, height]);
 
+const tooltip = d3
+  .select("#chart")
+  .append("div")
+  .attr("id", "tooltip")
+  .style("opacity", 0);
+
 const render = (dataset) => {
+  const xValue = (d) => d[0];
+  const xAxisLabel = "Time";
+
+  const yValue = (d) => d[1];
+  const yAxisLabel = "Gross Domestic Product";
+
+  const bandwidth = width / dataset.data.length;
+
   const xScale = d3
-    .scaleBand()
-    .domain(d3.range(dataset.data.length))
-    .range([margin.left, width - margin.right])
-    .padding(0.1);
+    .scaleTime()
+    .domain(d3.extent(dataset.data, xValue))
+    .range([margin.left, width - margin.right]);
 
   const yScale = d3
     .scaleLinear()
-    .domain([0, d3.max(dataset.data, (d) => d[1])])
-    .range([height - margin.bottom, margin.top]);
+    .domain([0, d3.max(dataset.data, yValue)])
+    .range([height - margin.bottom, margin.top])
+    .nice();
 
-  const xAxis = d3
-    .axisBottom(xScale)
-    .tickValues(xScale.domain().filter((d, i) => !(i % 20)));
+  const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y")).ticks(5);
 
   const yAxis = d3.axisLeft(yScale);
 
+  const formatTime = d3.timeFormat("%Y-%m-%d");
+
+  // Rect (bar) elements append
   svg
     .selectAll("rect")
     .data(dataset.data)
     .enter()
     .append("rect")
-    .attr("x", (d, i) => xScale(i))
-    .attr("y", (d) => yScale(d[1]))
-    .attr("width", xScale.bandwidth())
-    .attr("height", (d) => yScale(0) - yScale(d[1]));
+    .attr("class", "bar")
+    .attr("data-date", (d) => formatTime(d[0]))
+    .attr("data-gdp", yValue)
+    .attr("x", (d) => xScale(xValue(d)))
+    .attr("y", (d) => yScale(yValue(d)))
+    .attr("width", bandwidth)
+    .attr("height", (d) => yScale(0) - yScale(yValue(d)))
+    .on("mouseover", (d) => {
+      let date = formatTime(d[0]);
+
+      tooltip.transition().duration(200).style("opacity", 0.9);
+
+      tooltip
+        .html(`${date} ${yValue(d)}`)
+        .attr("data-date", date)
+        .style("left", d3.event.pageX + "px")
+        .style("top", d3.event.pageY + 20 + "px");
+    })
+    .on("mouseout", () => {
+      tooltip.transition().duration(200).style("opacity", 0);
+    });
 
   // Bottom Axis Append
   svg
     .append("g")
+    .attr("id", "x-axis")
     .attr("transform", `translate(0, ${height - margin.bottom})`)
     .call(xAxis);
 
   // Left Axis Append
-  svg.append("g").attr("transform", `translate(${margin.left},0)`).call(yAxis);
+  svg
+    .append("g")
+    .attr("id", "y-axis")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(yAxis);
 };
 
 const url =
   "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json";
 
-d3.json(url).then((dataset) => render(dataset));
+d3.json(url).then((dataset) => {
+  dataset.data.forEach((d) => {
+    d[0] = new Date(d[0] + "T00:00");
+  });
+  render(dataset);
+});
