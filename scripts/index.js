@@ -1,3 +1,15 @@
+// Fetch json and preprocess data
+const url =
+  "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json";
+
+d3.json(url).then((dataset) => {
+  dataset.data.forEach((d) => {
+    d[0] = new Date(d[0] + "T00:00");
+  });
+  render(dataset);
+});
+
+// SVG layout setup
 const width = 600;
 const height = 300;
 const margin = { top: 30, right: 10, bottom: 30, left: 20 };
@@ -13,11 +25,11 @@ const tooltip = d3
   .attr("id", "tooltip")
   .style("opacity", 0);
 
+// Render function
 const render = (dataset) => {
   const xValue = (d) => d[0];
 
   const yValue = (d) => d[1];
-  const yAxisLabel = "Gross Domestic Product";
 
   const bandwidth = width / dataset.data.length;
 
@@ -31,12 +43,14 @@ const render = (dataset) => {
     .domain([0, d3.max(dataset.data, yValue)])
     .range([height - margin.bottom, margin.top]);
 
-  // Axis setup
+  // Axes setup
   const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y")).ticks(5);
 
   const yAxis = d3
     .axisRight(yScale)
     .tickSize(width - margin.right - margin.left);
+
+  const yAxisLabel = "Gross Domestic Product";
 
   const customXAxis = (g) => {
     g.call(xAxis);
@@ -52,10 +66,12 @@ const render = (dataset) => {
     g.selectAll(".tick text").attr("x", 4).attr("dy", -4);
   };
 
-  // Time format
-  const formatTime = d3.timeFormat("%Y-%m-%d");
-  const formatTimeTooltip = d3.timeFormat("%b, %Y");
+  // Time and gdp formatters
+  const formatTimeDate = d3.timeFormat("%Y-%m-%d");
+  const formatTimeTooltipDate = d3.timeFormat("%b, %Y");
+  const formatGdp = d3.format(",");
 
+  // Sequential color scale implementation
   const colorScale = d3
     .scaleSequential()
     .domain([0, d3.max(dataset.data, yValue)])
@@ -94,7 +110,7 @@ const render = (dataset) => {
     .enter()
     .append("rect")
     .attr("class", "bar")
-    .attr("data-date", (d) => formatTime(d[0]))
+    .attr("data-date", (d) => formatTimeDate(d[0]))
     .attr("data-gdp", yValue)
     .attr("x", (d) => xScale(xValue(d)))
     .attr("y", (d) => yScale(yValue(d)))
@@ -102,13 +118,14 @@ const render = (dataset) => {
     .attr("height", (d) => yScale(0) - yScale(yValue(d)))
     .attr("fill", (d) => colorScale(d[1]))
     .on("mouseover", (d) => {
-      let date = formatTimeTooltip(d[0]);
+      let date = formatTimeTooltipDate(d[0]);
+      let gdp = formatGdp(d[1]);
 
       tooltip.transition().duration(200).style("opacity", 0.9);
 
       tooltip
-        .html(`${date}<br />$${yValue(d)} billion`)
-        .attr("data-date", formatTime(d[0]))
+        .html(`${date}<br />$${gdp} billion`)
+        .attr("data-date", formatTimeDate(d[0]))
         .style("left", d3.event.pageX + 20 + "px")
         .style("top", d3.event.pageY + 20 + "px");
     })
@@ -116,13 +133,3 @@ const render = (dataset) => {
       tooltip.transition().duration(200).style("opacity", 0);
     });
 };
-
-const url =
-  "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json";
-
-d3.json(url).then((dataset) => {
-  dataset.data.forEach((d) => {
-    d[0] = new Date(d[0] + "T00:00");
-  });
-  render(dataset);
-});
