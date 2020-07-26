@@ -40,6 +40,10 @@ a:visited {
   user-select: none;
 }
 
+.bar:hover {
+  fill: white;
+}
+
 #tooltip {
   position: absolute;
   background-color: #311a41;
